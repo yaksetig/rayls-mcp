@@ -87,11 +87,18 @@ export const compileCircomHandler = async (input: { source: string }): Promise<T
   }
 };
 
-export const auditCircomHandler = async (input: { source: string }): Promise<ToolResultSchema> => {
+export const auditCircomHandler = async (
+  input: { source?: string; file?: string }
+): Promise<ToolResultSchema> => {
   try {
+    const source = input.source ?? input.file;
+    if (!source) {
+      return createErrorResponse("No circuit source provided");
+    }
+
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "circom-"));
     const filePath = path.join(tmpDir, "circuit.circom");
-    fs.writeFileSync(filePath, input.source);
+    fs.writeFileSync(filePath, source);
 
     const circomspectCmd = resolveCmd("circomspect", "CIRCOMSPECT_PATH");
     const { stdout, stderr } = await exec(`${circomspectCmd} ${filePath}`);
