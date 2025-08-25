@@ -47,13 +47,10 @@ export const compileSolidityHandler = async (input) => {
 };
 export const securityAuditHandler = async (input) => {
     try {
-        const source = input.source ?? input.file;
-        if (typeof source !== "string") {
-            return createErrorResponse("No source code provided");
-        }
         const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "slither-"));
-        const filePath = path.join(tmpDir, "Contract.sol");
-        fs.writeFileSync(filePath, source);
+        const filename = path.basename(input.filename);
+        const filePath = path.join(tmpDir, filename);
+        fs.writeFileSync(filePath, input.source);
         // Verify slither is available before attempting to run it
         try {
             await exec("command -v slither");
@@ -101,13 +98,10 @@ export const compileCircomHandler = async (input) => {
 };
 export const auditCircomHandler = async (input) => {
     try {
-        const source = input.source ?? input.file;
-        if (!source) {
-            return createErrorResponse("No circuit source provided");
-        }
         const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "circom-"));
-        const filePath = path.join(tmpDir, "circuit.circom");
-        fs.writeFileSync(filePath, source);
+        const filename = path.basename(input.filename);
+        const filePath = path.join(tmpDir, filename);
+        fs.writeFileSync(filePath, input.source);
         const circomspectCmd = resolveCmd("circomspect", "CIRCOMSPECT_PATH");
         const { stdout, stderr } = await exec(`${circomspectCmd} ${filePath}`);
         const output = stdout || stderr;
