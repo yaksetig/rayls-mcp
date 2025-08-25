@@ -6,7 +6,7 @@ import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { handlers, tools } from "./tools.js";
 const server = new Server({
-    name: "mcp-server-defillama",
+    name: "mcp-server-devtools",
     version: "1.0.0",
 }, {
     capabilities: {

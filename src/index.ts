@@ -12,7 +12,7 @@ import {
 import { handlers, tools } from "./tools.js";
 
 const server = new Server({
-  name: "mcp-server-defillama",
+  name: "mcp-server-devtools",
   version: "1.0.0",
 }, {
   capabilities: {
