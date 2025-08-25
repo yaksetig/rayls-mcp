@@ -1,104 +1,62 @@
 import {
-  getProtocolsHandler,
-  getProtocolTvlHandler,
-  getChainTvlHandler,
-  getTokenPricesHandler,
-  getHistoricalPricesHandler,
-  getStablecoinsHandler,
-  getStablecoinDataHandler
-} from "./handlers/defillama.js";
+  compileSolidityHandler,
+  securityAuditHandler,
+  compileCircomHandler,
+  auditCircomHandler
+} from "./handlers/devtools.js";
 
 export const tools = [
   {
-    name: "defillama_get_protocols",
-    description: "List all protocols tracked by DefiLlama",
-    inputSchema: {
-      type: "object",
-      properties: {},
-      required: []
-    }
-  },
-  {
-    name: "defillama_get_protocol_tvl",
-    description: "Get TVL data for a specific protocol",
+    name: "compile_solidity",
+    description: "Compile Solidity contracts using solc",
     inputSchema: {
       type: "object",
       properties: {
-        protocol: { type: "string" }
+        source: { type: "string" }
       },
-      required: ["protocol"]
+      required: ["source"]
     }
   },
   {
-    name: "defillama_get_chain_tvl",
-    description: "Get TVL data for a specific chain",
+    name: "security_audit",
+    description: "Run Slither static analysis on Solidity code",
     inputSchema: {
       type: "object",
       properties: {
-        chain: { type: "string" }
+        file: { type: "string" }
       },
-      required: ["chain"]
+      required: ["file"]
     }
   },
   {
-    name: "defillama_get_token_prices",
-    description: "Get current prices of tokens",
+    name: "compile_circom",
+    description: "Compile Circom circuits using circom",
     inputSchema: {
       type: "object",
       properties: {
-        coins: {
-          type: "array",
-          items: { type: "string" }
-        }
+        source: { type: "string" }
       },
-      required: ["coins"]
+      required: ["source"]
     }
   },
   {
-    name: "defillama_get_historical_prices",
-    description: "Get historical prices of tokens",
+    name: "audit_circom",
+    description: "Audit Circom circuits with circomspect",
     inputSchema: {
       type: "object",
       properties: {
-        coins: {
-          type: "array",
-          items: { type: "string" }
-        },
-        timestamp: { type: "number" }
+        file: { type: "string" }
       },
-      required: ["coins", "timestamp"]
-    }
-  },
-  {
-    name: "defillama_get_stablecoins",
-    description: "List all stablecoins tracked by DefiLlama",
-    inputSchema: {
-      type: "object",
-      properties: {},
-      required: []
-    }
-  },
-  {
-    name: "defillama_get_stablecoin_data",
-    description: "Get data for a specific stablecoin",
-    inputSchema: {
-      type: "object",
-      properties: {
-        asset: { type: "string" }
-      },
-      required: ["asset"]
+      required: ["file"]
     }
   }
 ];
 
-type handlerDictionary = Record<typeof tools[number]["name"], (input: any) => any>;
+type handlerDictionary = Record<typeof tools[number]["name"], (input: any) => Promise<any>>;
 
 export const handlers: handlerDictionary = {
-  "defillama_get_protocols": getProtocolsHandler,
-  "defillama_get_protocol_tvl": getProtocolTvlHandler,
-  "defillama_get_chain_tvl": getChainTvlHandler,
-  "defillama_get_token_prices": getTokenPricesHandler,
-  "defillama_get_historical_prices": getHistoricalPricesHandler,
-  "defillama_get_stablecoins": getStablecoinsHandler,
-  "defillama_get_stablecoin_data": getStablecoinDataHandler
+  compile_solidity: compileSolidityHandler,
+  security_audit: securityAuditHandler,
+  compile_circom: compileCircomHandler,
+  audit_circom: auditCircomHandler
 };
