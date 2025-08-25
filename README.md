@@ -2,6 +2,20 @@
 
 This repository contains a Model Context Protocol (MCP) server that enables Claude to compile and audit smart contract code. The server exposes tools for Solidity compilation, Slither analysis, Circom compilation, and Circomspect auditing.
 
+## Prerequisites
+
+The server relies on external CLI tools:
+
+- `circom` for compiling circuits
+- `circomspect` for auditing Circom code
+- `slither` for Solidity security analysis
+
+Install them separately and ensure they are on your `PATH`. For example, Circom can be installed via Cargo:
+
+```bash
+cargo install --locked --git https://github.com/iden3/circom.git
+```
+
 ## Available Tools
 
 - `compile_solidity`: Compile Solidity contracts using solc
