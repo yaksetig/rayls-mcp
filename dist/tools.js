@@ -18,12 +18,9 @@ export const tools = [
             type: "object",
             properties: {
                 source: { type: "string" },
-                file: { type: "string" }
+                filename: { type: "string" }
             },
-            anyOf: [
-                { required: ["source"] },
-                { required: ["file"] }
-            ]
+            required: ["source", "filename"]
         }
     },
     {
@@ -43,9 +40,10 @@ export const tools = [
         inputSchema: {
             type: "object",
             properties: {
-                file: { type: "string" }
+                source: { type: "string" },
+                filename: { type: "string" }
             },
-            required: ["file"]
+            required: ["source", "filename"]
         }
     }
 ];
