@@ -19,8 +19,8 @@ describe('Tool Handlers', () => {
   });
 
   it('securityAuditHandler returns result structure', async () => {
-    const source = 'pragma solidity ^0.8.0; contract A { function f() public pure returns(uint){return 1;} }';
-    const res = await securityAuditHandler({ source });
+    const file = 'pragma solidity ^0.8.0; contract A { function f() public pure returns(uint){return 1;} }';
+    const res = await securityAuditHandler({ file });
     assert.ok(typeof res.isError === 'boolean');
   });
 });
