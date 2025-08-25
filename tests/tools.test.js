@@ -3,10 +3,13 @@ import assert from 'node:assert';
 import { compileSolidityHandler, compileCircomHandler } from '../dist/handlers/devtools.js';
 
 describe('Tool Handlers', () => {
-  it('compileSolidityHandler returns result structure', async () => {
+  it('compileSolidityHandler compiles successfully', async () => {
     const source = 'pragma solidity ^0.8.0; contract A { function f() public pure returns(uint){return 1;} }';
     const res = await compileSolidityHandler({ source });
-    assert.ok(typeof res.isError === 'boolean');
+    assert.equal(res.isError, false, `unexpected error: ${res.content?.[0]?.text}`);
+    // The Solidity compiler should return ABI data in the output JSON
+    const output = res.content?.[0]?.text ?? '';
+    assert.ok(output.includes('"abi"'));
   });
 
   it('compileCircomHandler returns result structure', async () => {
