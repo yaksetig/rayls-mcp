@@ -79,7 +79,19 @@ export const compileCircomHandler = async (input: { source: string }): Promise<T
     const filePath = path.join(tmpDir, "circuit.circom");
     fs.writeFileSync(filePath, input.source);
     const circomCmd = resolveCmd("circom", "CIRCOM_PATH");
-    await exec(`${circomCmd} ${filePath} --wasm --r1cs -o ${tmpDir}`);
+    try {
+      await exec(`${circomCmd} ${filePath} --wasm --r1cs -o ${tmpDir}`);
+    } catch (e) {
+      const error: any = e;
+      const stderr = error?.stderr?.toString() ?? "";
+      const notFound = error?.code === 127 || /not found/i.test(stderr);
+      const message = notFound
+        ? "circom executable not found. Please install circom and ensure it is in your PATH."
+        : error instanceof Error
+          ? error.message
+          : String(error);
+      return createErrorResponse(`Circom compilation failed: ${message}`);
+    }
     return createSuccessResponse(`Circuit compiled to ${tmpDir}`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
