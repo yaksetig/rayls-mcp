@@ -27,12 +27,27 @@ export const compileSolidityHandler = async (input) => {
 };
 export const securityAuditHandler = async (input) => {
     try {
+        if (!input.file) {
+            return createErrorResponse("No file path provided");
+        }
+        if (!fs.existsSync(input.file)) {
+            return createErrorResponse(`File not found: ${input.file}`);
+        }
+        // Verify slither is available before attempting to run it
+        try {
+            await exec("command -v slither");
+        }
+        catch {
+            return createErrorResponse("Slither is not installed or not found in PATH");
+        }
         const { stdout, stderr } = await exec(`slither ${input.file}`);
         const output = stdout || stderr;
         return createSuccessResponse(output.trim());
     }
     catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
+        const error = err;
+        const stderr = error?.stderr?.toString().trim();
+        const message = stderr || (err instanceof Error ? err.message : String(err));
         return createErrorResponse(`Slither failed: ${message}`);
     }
 };
