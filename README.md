@@ -10,7 +10,7 @@ The server relies on external CLI tools:
 - `circomspect` for auditing Circom code
 - `slither` for Solidity security analysis
 
-Install them separately and ensure they are on your `PATH`. For example, Circom can be installed via Cargo:
+Install them separately and ensure they are on your `PATH`. If they are installed elsewhere, set the `CIRCOM_PATH` and `CIRCOMSPECT_PATH` environment variables to point to the binaries. For example, Circom can be installed via Cargo:
 
 ```bash
 cargo install --locked --git https://github.com/iden3/circom.git

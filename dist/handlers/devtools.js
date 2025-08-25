@@ -5,6 +5,12 @@ import os from "os";
 import path from "path";
 import { createErrorResponse, createSuccessResponse } from "./utils.js";
 const exec = promisify(execCallback);
+const resolveCmd = (cmd, envVar) => {
+    if (process.env[envVar])
+        return process.env[envVar];
+    const localPath = path.join(process.cwd(), "node_modules", ".bin", cmd);
+    return fs.existsSync(localPath) ? localPath : cmd;
+};
 export const compileSolidityHandler = async (input) => {
     try {
         const solc = await import("solc");
@@ -41,7 +47,8 @@ export const compileCircomHandler = async (input) => {
         const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "circom-"));
         const filePath = path.join(tmpDir, "circuit.circom");
         fs.writeFileSync(filePath, input.source);
-        await exec(`circom ${filePath} --wasm --r1cs -o ${tmpDir}`);
+        const circomCmd = resolveCmd("circom", "CIRCOM_PATH");
+        await exec(`${circomCmd} ${filePath} --wasm --r1cs -o ${tmpDir}`);
         return createSuccessResponse(`Circuit compiled to ${tmpDir}`);
     }
     catch (err) {
@@ -51,7 +58,8 @@ export const compileCircomHandler = async (input) => {
 };
 export const auditCircomHandler = async (input) => {
     try {
-        const { stdout, stderr } = await exec(`circomspect ${input.file}`);
+        const circomspectCmd = resolveCmd("circomspect", "CIRCOMSPECT_PATH");
+        const { stdout, stderr } = await exec(`${circomspectCmd} ${input.file}`);
         const output = stdout || stderr;
         return createSuccessResponse(output.trim());
     }

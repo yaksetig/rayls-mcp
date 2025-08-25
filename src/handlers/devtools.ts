@@ -8,6 +8,12 @@ import { ToolResultSchema } from "../types.js";
 
 const exec = promisify(execCallback);
 
+const resolveCmd = (cmd: string, envVar: string) => {
+  if (process.env[envVar]) return process.env[envVar] as string;
+  const localPath = path.join(process.cwd(), "node_modules", ".bin", cmd);
+  return fs.existsSync(localPath) ? localPath : cmd;
+};
+
 export const compileSolidityHandler = async (input: { source: string }): Promise<ToolResultSchema> => {
   try {
     const solc: any = await import("solc");
@@ -44,7 +50,8 @@ export const compileCircomHandler = async (input: { source: string }): Promise<T
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "circom-"));
     const filePath = path.join(tmpDir, "circuit.circom");
     fs.writeFileSync(filePath, input.source);
-    await exec(`circom ${filePath} --wasm --r1cs -o ${tmpDir}`);
+    const circomCmd = resolveCmd("circom", "CIRCOM_PATH");
+    await exec(`${circomCmd} ${filePath} --wasm --r1cs -o ${tmpDir}`);
     return createSuccessResponse(`Circuit compiled to ${tmpDir}`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -54,7 +61,8 @@ export const compileCircomHandler = async (input: { source: string }): Promise<T
 
 export const auditCircomHandler = async (input: { file: string }): Promise<ToolResultSchema> => {
   try {
-    const { stdout, stderr } = await exec(`circomspect ${input.file}`);
+    const circomspectCmd = resolveCmd("circomspect", "CIRCOMSPECT_PATH");
+    const { stdout, stderr } = await exec(`${circomspectCmd} ${input.file}`);
     const output = stdout || stderr;
     return createSuccessResponse(output.trim());
   } catch (err) {
