@@ -93,7 +93,14 @@ export const auditCircomHandler = async (input: { file: string }): Promise<ToolR
     const output = stdout || stderr;
     return createSuccessResponse(output.trim());
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const e = err as any;
+    const stderr = e?.stderr?.toString() ?? "";
+    const notFound = e?.code === 127 || /not found/i.test(stderr);
+    const message = notFound
+      ? "circomspect executable not found. Please install circomspect and ensure it is in your PATH."
+      : e instanceof Error
+        ? e.message
+        : String(e);
     return createErrorResponse(`circomspect failed: ${message}`);
   }
 };
