@@ -47,6 +47,9 @@ export const compileSolidityHandler = async (input) => {
 };
 export const securityAuditHandler = async (input) => {
     try {
+        if (!input.filename) {
+            return createErrorResponse("Filename is required for Slither analysis");
+        }
         const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "slither-"));
         const filename = path.basename(input.filename);
         const filePath = path.join(tmpDir, filename);
@@ -58,7 +61,7 @@ export const securityAuditHandler = async (input) => {
         catch {
             return createErrorResponse("Slither is not installed or not found in PATH");
         }
-        const { stdout, stderr } = await exec(`slither ${filePath}`);
+        const { stdout, stderr } = await exec(`slither ${tmpDir}`);
         const output = stdout || stderr;
         return createSuccessResponse(output.trim());
     }
