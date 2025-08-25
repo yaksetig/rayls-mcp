@@ -17,9 +17,13 @@ export const tools = [
         inputSchema: {
             type: "object",
             properties: {
-                source: { type: "string" }
+                source: { type: "string" },
+                file: { type: "string" }
             },
-            required: ["source"]
+            anyOf: [
+                { required: ["source"] },
+                { required: ["file"] }
+            ]
         }
     },
     {

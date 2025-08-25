@@ -47,9 +47,13 @@ export const compileSolidityHandler = async (input) => {
 };
 export const securityAuditHandler = async (input) => {
     try {
+        const source = input.source ?? input.file;
+        if (typeof source !== "string") {
+            return createErrorResponse("No source code provided");
+        }
         const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "slither-"));
         const filePath = path.join(tmpDir, "Contract.sol");
-        fs.writeFileSync(filePath, input.source);
+        fs.writeFileSync(filePath, source);
         // Verify slither is available before attempting to run it
         try {
             await exec("command -v slither");
