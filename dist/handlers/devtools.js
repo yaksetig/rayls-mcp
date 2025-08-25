@@ -13,6 +13,9 @@ const resolveCmd = (cmd, envVar) => {
 };
 export const compileSolidityHandler = async (input) => {
     try {
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "solidity-"));
+        const filePath = path.join(tmpDir, "Contract.sol");
+        fs.writeFileSync(filePath, input.source);
         // `solc` is published as a CommonJS module. When importing it using
         // dynamic `import()` in an ESM environment the actual module is
         // available on the `default` property. Accessing `compile` directly on
@@ -24,7 +27,7 @@ export const compileSolidityHandler = async (input) => {
         const solc = solcModule.default || solcModule;
         const solInput = {
             language: "Solidity",
-            sources: { "Contract.sol": { content: input.source } },
+            sources: { "Contract.sol": { content: fs.readFileSync(filePath, "utf8") } },
             // The JSON standard input for solc expects the "ast" selection nested
             // under the wildcard file key. Without this nesting the compiler throws
             // a validation error ("settings.outputSelection." must be an object).
@@ -44,12 +47,9 @@ export const compileSolidityHandler = async (input) => {
 };
 export const securityAuditHandler = async (input) => {
     try {
-        if (!input.file) {
-            return createErrorResponse("No file path provided");
-        }
-        if (!fs.existsSync(input.file)) {
-            return createErrorResponse(`File not found: ${input.file}`);
-        }
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "slither-"));
+        const filePath = path.join(tmpDir, "Contract.sol");
+        fs.writeFileSync(filePath, input.source);
         // Verify slither is available before attempting to run it
         try {
             await exec("command -v slither");
@@ -57,7 +57,7 @@ export const securityAuditHandler = async (input) => {
         catch {
             return createErrorResponse("Slither is not installed or not found in PATH");
         }
-        const { stdout, stderr } = await exec(`slither ${input.file}`);
+        const { stdout, stderr } = await exec(`slither ${filePath}`);
         const output = stdout || stderr;
         return createSuccessResponse(output.trim());
     }
@@ -84,8 +84,11 @@ export const compileCircomHandler = async (input) => {
 };
 export const auditCircomHandler = async (input) => {
     try {
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "circom-"));
+        const filePath = path.join(tmpDir, "circuit.circom");
+        fs.writeFileSync(filePath, input.source);
         const circomspectCmd = resolveCmd("circomspect", "CIRCOMSPECT_PATH");
-        const { stdout, stderr } = await exec(`${circomspectCmd} ${input.file}`);
+        const { stdout, stderr } = await exec(`${circomspectCmd} ${filePath}`);
         const output = stdout || stderr;
         return createSuccessResponse(output.trim());
     }

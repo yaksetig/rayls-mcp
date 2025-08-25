@@ -18,8 +18,9 @@ describe('Tool Handlers', () => {
     assert.ok(typeof res.isError === 'boolean');
   });
 
-  it('securityAuditHandler returns error for missing file', async () => {
-    const res = await securityAuditHandler({ file: 'nonexistent.sol' });
-    assert.strictEqual(res.isError, true);
+  it('securityAuditHandler returns result structure', async () => {
+    const source = 'pragma solidity ^0.8.0; contract A { function f() public pure returns(uint){return 1;} }';
+    const res = await securityAuditHandler({ source });
+    assert.ok(typeof res.isError === 'boolean');
   });
 });
