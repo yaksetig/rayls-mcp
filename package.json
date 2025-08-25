@@ -1,0 +1,26 @@
+{
+  "name": "@mcp-dockmaster/mcp-server-defillama",
+  "version": "1.0.0",
+  "description": "MCP server for DefiLlama API",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "mcp-server-defillama": "./dist/index.js"
+  },
+  "scripts": {
+    "prepare": "npm run build",
+    "test": "npm run build && env TEST_MODE=true node tests/defillama.test.js",
+    "test:no-mock": "npm run build && env TEST_MODE=false node tests/defillama.test.js",
+    "build": "tsc && chmod +x dist/index.js",
+    "start": "node dist/index.js",
+    "dev": "tsc -w",
+    "postinstall": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
