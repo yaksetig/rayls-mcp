@@ -35,8 +35,8 @@ RUN echo "📦 Installing Node.js dependencies..." && \
     npm install && \
     echo "✅ Node.js dependencies installed"
 
-# Copy scripts directory
-COPY scripts/ ./scripts/
+# Copy ALL source files (including scripts directory)
+COPY . .
 
 # Install Slither with verbose output in the virtual environment
 RUN echo "🔧 Installing Slither..." && \
@@ -45,9 +45,6 @@ RUN echo "🔧 Installing Slither..." && \
     echo "✅ Slither installation complete" && \
     /opt/venv/bin/slither --version && \
     echo "✅ Slither verification complete"
-
-# Copy all source files
-COPY . .
 
 # Build the TypeScript project
 RUN echo "🔨 Building TypeScript..." && \
