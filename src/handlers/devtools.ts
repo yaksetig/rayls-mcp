@@ -109,7 +109,9 @@ export const compileSolidityHandler = async (
     : createErrorResponse(JSON.stringify(result));
 };
 
-export const securityAuditHandler = async (input) => {
+export const securityAuditHandler = async (
+  input: { source: string; filename?: string }
+): Promise<ToolResultSchema> => {
   const filename = input.filename || "Contract.sol";
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "slither-"));
   const filePath = path.join(tmpDir, path.basename(filename));
@@ -133,10 +135,9 @@ export const securityAuditHandler = async (input) => {
       try {
         await exec(`${path} --version`);
         slitherCmd = path;
-        console.log(`Found Slither at: ${path}`);
         break;
       } catch (e) {
-        console.log(`Slither not found at: ${path}`);
+        // Continue to next path
       }
     }
     
@@ -149,7 +150,7 @@ export const securityAuditHandler = async (input) => {
       stdout = result.stdout;
       stderr = result.stderr;
       success = true;
-    } catch (e) {
+    } catch (e: any) {
       stdout = e.stdout ?? "";
       stderr = e.stderr ?? "";
       success = false;
@@ -159,15 +160,15 @@ export const securityAuditHandler = async (input) => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 
-  let findings = [];
-  let summary = {};
-  const errors = [];
+  let findings: any[] = [];
+  let summary: any = {};
+  const errors: string[] = [];
 
   if (stdout) {
     try {
       const output = JSON.parse(stdout);
       findings = output.results?.detectors || [];
-      const severityCounts = {};
+      const severityCounts: Record<string, number> = {};
       for (const finding of findings) {
         const impact = finding.impact || "unknown";
         severityCounts[impact] = (severityCounts[impact] || 0) + 1;
