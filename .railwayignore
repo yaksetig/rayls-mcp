@@ -1,0 +1,6 @@
+# Railway ignore file
+# Add files you don't want deployed
+node_modules/
+.git/
+*.log
+.env.local
