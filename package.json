@@ -14,7 +14,7 @@
     "start": "node dist/index.js",
     "dev": "tsc -w",
     "install-slither": "node scripts/install-slither.js",
-    "postinstall": "npm run install-slither && npm run build"
+    "postinstall": "npm run install-slither"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.6.1",
