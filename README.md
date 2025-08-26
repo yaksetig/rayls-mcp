@@ -8,9 +8,9 @@ The server relies on external CLI tools:
 
 - `circom` for compiling circuits
 - `circomspect` for auditing Circom code
-- `slither` for Solidity security analysis (install with `pip3 install slither-analyzer`)
+- `slither` for Solidity security analysis (automatically installed via `npm install` using `pip3` if absent)
 
-Install them separately and ensure they are on your `PATH`. If they are installed elsewhere, set the `CIRCOM_PATH` and `CIRCOMSPECT_PATH` environment variables to point to the binaries. For example, Circom can be installed via Cargo:
+Install them separately and ensure they are on your `PATH`. Slither will be installed automatically by the project's `postinstall` script, but Python and `pip3` must be available. If tools are installed elsewhere, set the `CIRCOM_PATH` and `CIRCOMSPECT_PATH` environment variables to point to the binaries. For example, Circom can be installed via Cargo:
 
 ```bash
 cargo install --locked --git https://github.com/iden3/circom.git
