@@ -11,16 +11,18 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy package files first (for better Docker layer caching)
+# Copy package files and scripts
 COPY package*.json ./
 COPY scripts/ ./scripts/
 
-# Install Node.js dependencies
-# This will run postinstall script which installs Slither and builds the project
-RUN npm install
+# Install Node.js dependencies without running postinstall
+RUN npm ci --ignore-scripts
 
-# Copy the rest of the source code
+# Copy the rest of the source code (including TypeScript files)
 COPY . .
+
+# Now manually run the install-slither script and build
+RUN npm run install-slither && npm run build
 
 # Expose the port (Railway will set PORT environment variable)
 EXPOSE ${PORT:-3000}
