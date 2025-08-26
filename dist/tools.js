@@ -6,7 +6,8 @@ export const tools = [
         inputSchema: {
             type: "object",
             properties: {
-                source: { type: "string" }
+                source: { type: "string" },
+                filename: { type: "string" }
             },
             required: ["source"]
         }
@@ -20,7 +21,7 @@ export const tools = [
                 source: { type: "string" },
                 filename: { type: "string" }
             },
-            required: ["source", "filename"]
+            required: ["source"]
         }
     },
     {
