@@ -12,65 +12,157 @@ const resolveCmd = (cmd, envVar) => {
     return fs.existsSync(localPath) ? localPath : cmd;
 };
 export const compileSolidityHandler = async (input) => {
+    const filename = input.filename || "Contract.sol";
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "solidity-"));
+    const filePath = path.join(tmpDir, path.basename(filename));
+    fs.writeFileSync(filePath, input.source);
+    let stdout = "";
+    let stderr = "";
+    let success = false;
+    const errors = [];
+    const warnings = [];
+    let contracts = null;
     try {
-        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "solidity-"));
-        const filePath = path.join(tmpDir, "Contract.sol");
-        fs.writeFileSync(filePath, input.source);
-        // `solc` is published as a CommonJS module. When importing it using
-        // dynamic `import()` in an ESM environment the actual module is
-        // available on the `default` property. Accessing `compile` directly on
-        // the imported object therefore results in `undefined` and calling it
-        // throws `solc.compile is not a function`. Normalize the import so that
-        // `solc` always references the compiler object regardless of how it is
-        // exported.
-        const solcModule = await import("solc");
-        const solc = solcModule.default || solcModule;
-        const solInput = {
-            language: "Solidity",
-            sources: { "Contract.sol": { content: fs.readFileSync(filePath, "utf8") } },
-            // The JSON standard input for solc expects the "ast" selection nested
-            // under the wildcard file key. Without this nesting the compiler throws
-            // a validation error ("settings.outputSelection." must be an object).
-            settings: { outputSelection: { "*": { "*": ["abi", "evm.bytecode"], "": ["ast"] } } }
-        };
-        const output = JSON.parse(solc.compile(JSON.stringify(solInput)));
-        if (output.errors && output.errors.some((e) => e.severity === "error")) {
-            const messages = output.errors.map((e) => e.formattedMessage).join("\n");
-            return createErrorResponse(`Compilation error: ${messages}`);
-        }
-        return createSuccessResponse(JSON.stringify(output.contracts, null, 2));
-    }
-    catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        return createErrorResponse(`Compilation failed: ${message}`);
-    }
-};
-export const securityAuditHandler = async (input) => {
-    try {
-        if (!input.filename) {
-            return createErrorResponse("Filename is required for Slither analysis");
-        }
-        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "slither-"));
-        const filename = path.basename(input.filename);
-        const filePath = path.join(tmpDir, filename);
-        fs.writeFileSync(filePath, input.source);
-        // Verify slither is available before attempting to run it
+        // Prefer system solc, fallback to solcjs from node_modules
+        let solcCmd = resolveCmd("solc", "SOLC_PATH");
         try {
-            await exec("command -v slither");
+            await exec(`${solcCmd} --version`);
         }
         catch {
-            return createErrorResponse("Slither is not installed or not found in PATH");
+            solcCmd = resolveCmd("solcjs", "SOLCJS_PATH");
         }
-        const { stdout, stderr } = await exec(`slither ${tmpDir}`);
-        const output = stdout || stderr;
-        return createSuccessResponse(output.trim());
+        try {
+            const result = await exec(`${solcCmd} --combined-json abi,bin,metadata ${filePath}`);
+            stdout = result.stdout;
+            stderr = result.stderr;
+            success = true;
+        }
+        catch (e) {
+            stdout = e.stdout ?? "";
+            stderr = e.stderr ?? "";
+            success = false;
+        }
+        if (!success) {
+            // Fallback to solc JS API
+            const solcModule = await import("solc");
+            const solc = solcModule.default || solcModule;
+            const solInput = {
+                language: "Solidity",
+                sources: { [filename]: { content: fs.readFileSync(filePath, "utf8") } },
+                settings: { outputSelection: { "*": { "*": ["abi", "evm.bytecode"], "": ["ast"] } } }
+            };
+            const output = JSON.parse(solc.compile(JSON.stringify(solInput)));
+            contracts = output.contracts || {};
+            if (output.errors) {
+                for (const e of output.errors) {
+                    if (e.severity === "error")
+                        errors.push(e.formattedMessage);
+                    else if (e.severity === "warning")
+                        warnings.push(e.formattedMessage);
+                }
+                success = !output.errors.some((e) => e.severity === "error");
+            }
+            else {
+                success = true;
+            }
+        }
     }
-    catch (err) {
-        const error = err;
-        const stderr = error?.stderr?.toString().trim();
-        const message = stderr || (err instanceof Error ? err.message : String(err));
-        return createErrorResponse(`Slither failed: ${message}`);
+    catch (e) {
+        stderr = e.stderr ?? "";
+        errors.push(e.message ?? String(e));
+        success = false;
     }
+    finally {
+        fs.unlinkSync(filePath);
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+    if (stdout && success) {
+        try {
+            const output = JSON.parse(stdout);
+            contracts = output.contracts || {};
+        }
+        catch {
+            errors.push("Failed to parse compilation output");
+            success = false;
+        }
+    }
+    if (stderr && !stderr.includes("Warning:")) {
+        const lines = stderr.trim().split("\n");
+        for (const line of lines) {
+            if (line.includes("Error:"))
+                errors.push(line.trim());
+            else if (line.includes("Warning:"))
+                warnings.push(line.trim());
+            else if (line)
+                errors.push(line.trim());
+        }
+    }
+    else if (stderr) {
+        const lines = stderr.trim().split("\n");
+        for (const line of lines) {
+            if (line.includes("Warning:"))
+                warnings.push(line.trim());
+        }
+    }
+    const result = { success, errors, warnings, contracts, filename };
+    return success
+        ? createSuccessResponse(JSON.stringify(result))
+        : createErrorResponse(JSON.stringify(result));
+};
+export const securityAuditHandler = async (input) => {
+    const filename = input.filename || "Contract.sol";
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "slither-"));
+    const filePath = path.join(tmpDir, path.basename(filename));
+    fs.writeFileSync(filePath, input.source);
+    let stdout = "";
+    let stderr = "";
+    let success = false;
+    try {
+        try {
+            const result = await exec(`slither ${filePath} --json -`);
+            stdout = result.stdout;
+            stderr = result.stderr;
+            success = true;
+        }
+        catch (e) {
+            stdout = e.stdout ?? "";
+            stderr = e.stderr ?? "";
+            success = false;
+        }
+    }
+    finally {
+        fs.unlinkSync(filePath);
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+    let findings = [];
+    let summary = {};
+    const errors = [];
+    if (stdout) {
+        try {
+            const output = JSON.parse(stdout);
+            findings = output.results?.detectors || [];
+            const severityCounts = {};
+            for (const finding of findings) {
+                const impact = finding.impact || "unknown";
+                severityCounts[impact] = (severityCounts[impact] || 0) + 1;
+            }
+            summary = {
+                total_findings: findings.length,
+                severity_breakdown: severityCounts
+            };
+        }
+        catch {
+            errors.push("Failed to parse Slither output");
+            success = false;
+        }
+    }
+    if (stderr && !success) {
+        errors.push(stderr.trim());
+    }
+    const result = { success, findings, summary, errors, filename };
+    return success
+        ? createSuccessResponse(JSON.stringify(result))
+        : createErrorResponse(JSON.stringify(result));
 };
 export const compileCircomHandler = async (input) => {
     try {
