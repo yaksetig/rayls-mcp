@@ -193,54 +193,101 @@ export const securityAuditHandler = async (
     : createErrorResponse(JSON.stringify(result));
 };
 
-export const compileCircomHandler = async (input: { source: string }): Promise<ToolResultSchema> => {
+export const compileCircomHandler = async (input) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "circom-"));
+  const filePath = path.join(tmpDir, "circuit.circom");
+  fs.writeFileSync(filePath, input.source);
+
   try {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "circom-"));
-    const filePath = path.join(tmpDir, "circuit.circom");
-    fs.writeFileSync(filePath, input.source);
-    const circomCmd = resolveCmd("circom", "CIRCOM_PATH");
-    try {
-      await exec(`${circomCmd} ${filePath} --wasm --r1cs -o ${tmpDir}`);
-    } catch (e) {
-      const error: any = e;
-      const stderr = error?.stderr?.toString() ?? "";
-      const notFound = error?.code === 127 || /not found/i.test(stderr);
-      const message = notFound
-        ? "circom executable not found. Please install circom and ensure it is in your PATH."
-        : error instanceof Error
-          ? error.message
-          : String(error);
-      return createErrorResponse(`Circom compilation failed: ${message}`);
+    // Try multiple locations for circom
+    const circomPaths = [
+      "/root/.cargo/bin/circom",  // Rust install location
+      "circom"                    // PATH fallback
+    ];
+    
+    let circomCmd = null;
+    
+    // Find available circom command
+    for (const pathToTry of circomPaths) {
+      try {
+        await exec(`${pathToTry} --version`);
+        circomCmd = pathToTry;
+        console.log(`Found Circom at: ${pathToTry}`);
+        break;
+      } catch (e) {
+        console.log(`Circom not found at: ${pathToTry}`);
+      }
     }
-    return createSuccessResponse(`Circuit compiled to ${tmpDir}`);
+    
+    if (!circomCmd) {
+      return createErrorResponse("circom executable not found. Please install circom and ensure it is in your PATH.");
+    }
+
+    await exec(`${circomCmd} ${filePath} --wasm --r1cs -o ${tmpDir}`);
+    return createSuccessResponse(`Circuit compiled successfully to ${tmpDir}`);
+    
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const e = err;
+    const stderr = e?.stderr?.toString() ?? "";
+    const message = e instanceof Error ? e.message : String(e);
     return createErrorResponse(`Circom compilation failed: ${message}`);
+  } finally {
+    // Cleanup
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch (e) {
+      // Ignore cleanup errors
+    }
   }
 };
 
-export const auditCircomHandler = async (
-  input: { source: string; filename: string }
-): Promise<ToolResultSchema> => {
-  try {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "circom-"));
-    const filename = path.basename(input.filename);
-    const filePath = path.join(tmpDir, filename);
-    fs.writeFileSync(filePath, input.source);
+export const auditCircomHandler = async (input) => {
+  const filename = path.basename(input.filename);
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "circom-"));
+  const filePath = path.join(tmpDir, filename);
+  fs.writeFileSync(filePath, input.source);
 
-    const circomspectCmd = resolveCmd("circomspect", "CIRCOMSPECT_PATH");
+  try {
+    // Try multiple locations for circomspect
+    const circomspectPaths = [
+      "/root/.cargo/bin/circomspect",  // Rust install location
+      "circomspect"                    // PATH fallback
+    ];
+    
+    let circomspectCmd = null;
+    
+    // Find available circomspect command
+    for (const pathToTry of circomspectPaths) {
+      try {
+        await exec(`${pathToTry} --version`);
+        circomspectCmd = pathToTry;
+        console.log(`Found Circomspect at: ${pathToTry}`);
+        break;
+      } catch (e) {
+        console.log(`Circomspect not found at: ${pathToTry}`);
+      }
+    }
+    
+    if (!circomspectCmd) {
+      return createErrorResponse("circomspect executable not found. Please install circomspect and ensure it is in your PATH.");
+    }
+
     const { stdout, stderr } = await exec(`${circomspectCmd} ${filePath}`);
     const output = stdout || stderr;
     return createSuccessResponse(output.trim());
+    
   } catch (err) {
-    const e = err as any;
+    const e = err;
     const stderr = e?.stderr?.toString() ?? "";
-    const notFound = e?.code === 127 || /not found/i.test(stderr);
-    const message = notFound
-      ? "circomspect executable not found. Please install circomspect and ensure it is in your PATH."
-      : e instanceof Error
-        ? e.message
-        : String(e);
+    const message = e instanceof Error ? e.message : String(e);
     return createErrorResponse(`circomspect failed: ${message}`);
+  } finally {
+    // Cleanup
+    try {
+      fs.unlinkSync(filePath);
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch (e) {
+      // Ignore cleanup errors
+    }
   }
 };
