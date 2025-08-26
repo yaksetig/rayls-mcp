@@ -12,9 +12,10 @@ describe('Tool Handlers', () => {
     const source = 'pragma solidity ^0.8.0; contract A { function f() public pure returns(uint){return 1;} }';
     const res = await compileSolidityHandler({ source });
     assert.equal(res.isError, false, `unexpected error: ${res.content?.[0]?.text}`);
-    // The Solidity compiler should return ABI data in the output JSON
-    const output = res.content?.[0]?.text ?? '';
-    assert.ok(output.includes('"abi"'));
+    const text = res.content?.[0]?.text ?? '';
+    const output = JSON.parse(text);
+    assert.equal(output.success, true);
+    assert.ok(output.contracts);
   });
 
   it('compileCircomHandler returns result structure', async () => {
@@ -27,6 +28,9 @@ describe('Tool Handlers', () => {
     const source = 'pragma solidity ^0.8.0; contract A { function f() public pure returns(uint){return 1;} }';
     const res = await securityAuditHandler({ source, filename: 'Contract.sol' });
     assert.ok(typeof res.isError === 'boolean');
+    const text = res.content?.[0]?.text ?? '';
+    const output = JSON.parse(text);
+    assert.equal(output.filename, 'Contract.sol');
   });
 
   it('auditCircomHandler returns result structure', async () => {
