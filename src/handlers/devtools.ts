@@ -109,9 +109,7 @@ export const compileSolidityHandler = async (
     : createErrorResponse(JSON.stringify(result));
 };
 
-export const securityAuditHandler = async (
-  input: { source: string; filename?: string }
-): Promise<ToolResultSchema> => {
+export const securityAuditHandler = async (input) => {
   const filename = input.filename || "Contract.sol";
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "slither-"));
   const filePath = path.join(tmpDir, path.basename(filename));
@@ -122,12 +120,36 @@ export const securityAuditHandler = async (
   let success = false;
 
   try {
+    // Try virtual environment slither first, then PATH slither
+    const slitherPaths = [
+      "/opt/venv/bin/slither",  // Virtual environment path
+      "slither"                 // PATH fallback
+    ];
+    
+    let slitherCmd = null;
+    
+    // Find available slither command
+    for (const path of slitherPaths) {
+      try {
+        await exec(`${path} --version`);
+        slitherCmd = path;
+        console.log(`Found Slither at: ${path}`);
+        break;
+      } catch (e) {
+        console.log(`Slither not found at: ${path}`);
+      }
+    }
+    
+    if (!slitherCmd) {
+      throw new Error("Slither not found in virtual environment or PATH");
+    }
+
     try {
-      const result = await exec(`slither ${filePath} --json -`);
+      const result = await exec(`${slitherCmd} ${filePath} --json -`);
       stdout = result.stdout;
       stderr = result.stderr;
       success = true;
-    } catch (e: any) {
+    } catch (e) {
       stdout = e.stdout ?? "";
       stderr = e.stderr ?? "";
       success = false;
@@ -137,15 +159,15 @@ export const securityAuditHandler = async (
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 
-  let findings: any[] = [];
-  let summary: any = {};
-  const errors: string[] = [];
+  let findings = [];
+  let summary = {};
+  const errors = [];
 
   if (stdout) {
     try {
       const output = JSON.parse(stdout);
       findings = output.results?.detectors || [];
-      const severityCounts: Record<string, number> = {};
+      const severityCounts = {};
       for (const finding of findings) {
         const impact = finding.impact || "unknown";
         severityCounts[impact] = (severityCounts[impact] || 0) + 1;
