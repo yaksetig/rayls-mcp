@@ -32,7 +32,7 @@ WORKDIR /app
 # Copy package.json and install Node dependencies first
 COPY package*.json ./
 RUN echo "📦 Installing Node.js dependencies..." && \
-    npm ci && \
+    npm install && \
     echo "✅ Node.js dependencies installed"
 
 # Copy scripts directory
