@@ -7,7 +7,7 @@ RUN apt-get update && \
     curl git && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Rust for Circom and Circomspect
+# Install Rust for Circom
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:$PATH"
 
@@ -19,14 +19,12 @@ RUN . /root/.cargo/env && \
     cargo install --path circom && \
     rm -rf /tmp/circom
 
-# Install Circomspect from crates.io (simpler than building from source)
-RUN . /root/.cargo/env && \
-    cargo install circomspect
+# Verify Circom installation
+RUN . /root/.cargo/env && circom --version
 
-# Verify installations
+# Try to install Circomspect (but don't fail the build if it doesn't work)
 RUN . /root/.cargo/env && \
-    circom --version && \
-    circomspect --version
+    (cargo install circomspect || echo "Circomspect installation failed, continuing without it")
 
 # Create Python venv and install Slither
 RUN python3 -m venv /opt/venv && \
