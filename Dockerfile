@@ -25,6 +25,17 @@ RUN . /root/.cargo/env && \
     rm -rf /tmp/circom && \
     circom --version
 
+# Install circomspect (try cargo install first, fallback to source)
+RUN . /root/.cargo/env && \
+    (cargo install circomspect || \
+     (echo "Cargo install failed, trying from source..." && \
+      git clone https://github.com/trailofbits/circomspect.git /tmp/circomspect && \
+      cd /tmp/circomspect && \
+      cargo build --release && \
+      cargo install --path . && \
+      rm -rf /tmp/circomspect)) && \
+    circomspect --version
+
 # Create Python virtual environment and install Slither  
 RUN python3 -m venv /opt/venv && \
     /opt/venv/bin/pip install --upgrade pip && \
