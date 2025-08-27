@@ -193,7 +193,9 @@ export const securityAuditHandler = async (
     : createErrorResponse(JSON.stringify(result));
 };
 
-export const compileCircomHandler = async (input) => {
+export const compileCircomHandler = async (
+  input: { source: string }
+): Promise<ToolResultSchema> => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "circom-"));
   const filePath = path.join(tmpDir, "circuit.circom");
   fs.writeFileSync(filePath, input.source);
@@ -227,8 +229,7 @@ export const compileCircomHandler = async (input) => {
     return createSuccessResponse(`Circuit compiled successfully to ${tmpDir}`);
     
   } catch (err) {
-    const e = err;
-    const stderr = e?.stderr?.toString() ?? "";
+    const e = err as any;
     const message = e instanceof Error ? e.message : String(e);
     return createErrorResponse(`Circom compilation failed: ${message}`);
   } finally {
@@ -241,7 +242,9 @@ export const compileCircomHandler = async (input) => {
   }
 };
 
-export const auditCircomHandler = async (input) => {
+export const auditCircomHandler = async (
+  input: { source: string; filename: string }
+): Promise<ToolResultSchema> => {
   const filename = path.basename(input.filename);
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "circom-"));
   const filePath = path.join(tmpDir, filename);
@@ -277,8 +280,7 @@ export const auditCircomHandler = async (input) => {
     return createSuccessResponse(output.trim());
     
   } catch (err) {
-    const e = err;
-    const stderr = e?.stderr?.toString() ?? "";
+    const e = err as any;
     const message = e instanceof Error ? e.message : String(e);
     return createErrorResponse(`circomspect failed: ${message}`);
   } finally {
