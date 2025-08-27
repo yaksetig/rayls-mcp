@@ -19,13 +19,9 @@ RUN . /root/.cargo/env && \
     cargo install --path circom && \
     rm -rf /tmp/circom
 
-# Install Circomspect
+# Install Circomspect from crates.io (simpler than building from source)
 RUN . /root/.cargo/env && \
-    git clone https://github.com/trailofbits/circomspect.git /tmp/circomspect && \
-    cd /tmp/circomspect && \
-    cargo build --release && \
-    cargo install --path . && \
-    rm -rf /tmp/circomspect
+    cargo install circomspect
 
 # Verify installations
 RUN . /root/.cargo/env && \
