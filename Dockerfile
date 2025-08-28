@@ -34,7 +34,7 @@ RUN . /root/.cargo/env && \
       cargo build --release && \
       cargo install --path . && \
       rm -rf /tmp/circomspect)) && \
-    circomspect --version
+    which circomspect
 
 # Create Python virtual environment and install Slither  
 RUN python3 -m venv /opt/venv && \
