@@ -249,7 +249,6 @@ export const auditCircomHandler = async (
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "circom-"));
   const filePath = path.join(tmpDir, filename);
   fs.writeFileSync(filePath, input.source);
-
   try {
     // Try multiple locations for circomspect
     const circomspectPaths = [
@@ -262,10 +261,21 @@ export const auditCircomHandler = async (
     // Find available circomspect command
     for (const pathToTry of circomspectPaths) {
       try {
-        await exec(`${pathToTry} --version`);
-        circomspectCmd = pathToTry;
-        console.log(`Found Circomspect at: ${pathToTry}`);
-        break;
+        // Check if executable exists using 'which' or direct path check
+        if (pathToTry.startsWith('/')) {
+          // Absolute path - check if file exists and is executable
+          if (fs.existsSync(pathToTry)) {
+            circomspectCmd = pathToTry;
+            console.log(`Found Circomspect at: ${pathToTry}`);
+            break;
+          }
+        } else {
+          // Use which command for PATH lookup
+          await exec(`which ${pathToTry}`);
+          circomspectCmd = pathToTry;
+          console.log(`Found Circomspect at: ${pathToTry}`);
+          break;
+        }
       } catch (e) {
         console.log(`Circomspect not found at: ${pathToTry}`);
       }
@@ -274,7 +284,7 @@ export const auditCircomHandler = async (
     if (!circomspectCmd) {
       return createErrorResponse("circomspect executable not found. Please install circomspect and ensure it is in your PATH.");
     }
-
+    
     const { stdout, stderr } = await exec(`${circomspectCmd} ${filePath}`);
     const output = stdout || stderr;
     return createSuccessResponse(output.trim());
